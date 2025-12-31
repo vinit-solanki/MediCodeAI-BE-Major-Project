@@ -24,6 +24,18 @@ const HospitalResults = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const safeArray = (arr) => (Array.isArray(arr) ? arr : []);
+  const normalizeConfidenceNumber = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return 0;
+    return num <= 1 ? num * 100 : num;
+  };
+  const formatConfidence = (value) => {
+    if (value === null || value === undefined) return "N/A";
+    const percent = normalizeConfidenceNumber(value);
+    return `${percent.toFixed(1)}%`;
+  };
+
   const mockResults = {
     extractedData: {
       diagnosis: "Hypertension, Type 2 Diabetes",
@@ -55,8 +67,9 @@ const HospitalResults = () => {
   };
 
   const getConfidenceColor = (confidence) => {
-    if (confidence >= 90) return "text-green-600";
-    if (confidence >= 80) return "text-yellow-600";
+    const percent = normalizeConfidenceNumber(confidence);
+    if (percent >= 90) return "text-green-600";
+    if (percent >= 80) return "text-yellow-600";
     return "text-red-600";
   };
 
@@ -79,6 +92,11 @@ const HospitalResults = () => {
               <p className="text-sm text-muted-foreground">
                 AI-extracted codes & claim summary
               </p>
+              {results.traceId && (
+                <p className="text-xs text-muted-foreground/80">
+                  Trace ID: {results.traceId}
+                </p>
+              )}
             </div>
           </div>
           <div className="flex items-center space-x-4">
@@ -128,7 +146,7 @@ const HospitalResults = () => {
                       results.aiConfidence.overall
                     )}`}
                   >
-                    {results.aiConfidence.overall}%
+                    {formatConfidence(results.aiConfidence.overall)}
                   </p>
                   <p className="text-sm text-muted-foreground">Overall</p>
                 </div>
@@ -138,7 +156,7 @@ const HospitalResults = () => {
                       results.aiConfidence.diagnosis
                     )}`}
                   >
-                    {results.aiConfidence.diagnosis}%
+                    {formatConfidence(results.aiConfidence.diagnosis)}
                   </p>
                   <p className="text-sm text-muted-foreground">Diagnosis</p>
                 </div>
@@ -148,7 +166,7 @@ const HospitalResults = () => {
                       results.aiConfidence.procedures
                     )}`}
                   >
-                    {results.aiConfidence.procedures}%
+                    {formatConfidence(results.aiConfidence.procedures)}
                   </p>
                   <p className="text-sm text-muted-foreground">Procedures</p>
                 </div>
@@ -158,7 +176,7 @@ const HospitalResults = () => {
                       results.aiConfidence.medications
                     )}`}
                   >
-                    {results.aiConfidence.medications}%
+                    {formatConfidence(results.aiConfidence.medications)}
                   </p>
                   <p className="text-sm text-muted-foreground">Medications</p>
                 </div>
@@ -176,25 +194,25 @@ const HospitalResults = () => {
               <div>
                 <Label className="font-medium">Diagnosis</Label>
                 <p className="text-sm bg-muted/50 p-2 rounded">
-                  {results.extractedData.diagnosis}
+                  {results.extractedData.diagnosis || "Not provided"}
                 </p>
               </div>
               <div>
                 <Label className="font-medium">Procedures</Label>
                 <p className="text-sm bg-muted/50 p-2 rounded">
-                  {results.extractedData.procedures}
+                  {results.extractedData.procedures || "Not provided"}
                 </p>
               </div>
               <div>
                 <Label className="font-medium">Medications</Label>
                 <p className="text-sm bg-muted/50 p-2 rounded">
-                  {results.extractedData.medications}
+                  {results.extractedData.medications || "Not provided"}
                 </p>
               </div>
               <div>
                 <Label className="font-medium">Physician</Label>
                 <p className="text-sm bg-muted/50 p-2 rounded">
-                  {results.extractedData.physician}
+                  {results.extractedData.physician || "Not provided"}
                 </p>
               </div>
             </CardContent>
@@ -210,33 +228,61 @@ const HospitalResults = () => {
               <div>
                 <Label className="font-medium">ICD-10</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {results.medicalCodes.icd10.map((code, idx) => (
-                    <Badge
-                      key={idx}
-                      variant="outline"
-                      className="bg-blue-50 text-blue-700"
-                    >
-                      {code}
-                    </Badge>
-                  ))}
+                  {safeArray(results.medicalCodes.icd10).length ? (
+                    safeArray(results.medicalCodes.icd10).map((code, idx) => (
+                      <Badge
+                        key={idx}
+                        variant="outline"
+                        className="bg-blue-50 text-blue-700"
+                      >
+                        {code}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">No ICD-10 codes</span>
+                  )}
                 </div>
               </div>
               <div>
                 <Label className="font-medium">CPT</Label>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {results.medicalCodes.cpt.map((code, idx) => (
-                    <Badge
-                      key={idx}
-                      variant="outline"
-                      className="bg-green-50 text-green-700"
-                    >
-                      {code}
-                    </Badge>
-                  ))}
+                  {safeArray(results.medicalCodes.cpt).length ? (
+                    safeArray(results.medicalCodes.cpt).map((code, idx) => (
+                      <Badge
+                        key={idx}
+                        variant="outline"
+                        className="bg-green-50 text-green-700"
+                      >
+                        {code}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">No CPT codes</span>
+                  )}
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* HCPCS Codes (if any) */}
+          {safeArray(results.medicalCodes.hcpcs).length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>HCPCS Codes</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-wrap gap-2">
+                {safeArray(results.medicalCodes.hcpcs).map((code, idx) => (
+                  <Badge
+                    key={idx}
+                    variant="outline"
+                    className="bg-amber-50 text-amber-700"
+                  >
+                    {code}
+                  </Badge>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Claim Summary */}
           <Card>

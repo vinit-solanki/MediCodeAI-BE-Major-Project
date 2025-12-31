@@ -22,7 +22,6 @@ import { Progress } from "@/components/ui/progress";
 import {
   Upload,
   FileText,
-  Image,
   Brain,
   Home,
   ArrowLeft,
@@ -30,6 +29,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import logoSvg from "@/assets/health-insurance-logo.svg";
+import { codePdf } from "@/lib/api";
 
 const HospitalDashboard = () => {
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -52,6 +52,53 @@ const HospitalDashboard = () => {
     "Generating claim forms...",
     "Completed!",
   ];
+
+  const normalizeResult = useCallback((data) => {
+    const safeArray = (value) => (Array.isArray(value) ? value : []);
+    const toCodes = (arr) =>
+      safeArray(arr)
+        .map((entry) => {
+          if (typeof entry === "string") return entry;
+          if (entry?.code) return entry.code;
+          if (entry?.icd_code) return entry.icd_code;
+          if (entry?.ICD_code) return entry.ICD_code;
+          if (entry?.cpt_code) return entry.cpt_code;
+          if (entry?.hcpcs_code) return entry.hcpcs_code;
+          return null;
+        })
+        .filter(Boolean);
+
+    const medicalEntities = data?.medical_entities || {};
+    const fallbackText = (value, alt) => {
+      if (!value || (Array.isArray(value) && value.length === 0)) return alt;
+      if (Array.isArray(value)) return value.join(", ");
+      if (typeof value === "object") {
+        return Object.values(value)
+          .filter(Boolean)
+          .join(", ");
+      }
+      return value;
+    };
+
+    return {
+      extractedData: {
+        diagnosis: fallbackText(medicalEntities.diagnoses || medicalEntities.conditions, "Not provided"),
+        procedures: fallbackText(medicalEntities.procedures || medicalEntities.treatments, "Not provided"),
+        medications: fallbackText(medicalEntities.medications, "Not provided"),
+        physician: fallbackText(medicalEntities.provider || medicalEntities.physician, "Unknown"),
+      },
+      medicalCodes: {
+        icd10: toCodes(data?.icd_codes),
+        cpt: toCodes(data?.cpt_codes),
+        hcpcs: toCodes(data?.hcpcs_codes),
+      },
+      aiConfidence: {
+        overall: data?.evaluation?.overall_score ?? null,
+        compliance: data?.evaluation?.compliance_risk ?? null,
+      },
+      traceId: data?.trace_id || null,
+    };
+  }, []);
 
   const handleFileUpload = useCallback((e) => {
     const files = Array.from(e.target.files || []);
@@ -76,22 +123,33 @@ const HospitalDashboard = () => {
     setProcessing(true);
     setProcessingStep(0);
 
-    for (let i = 0; i < processingSteps.length; i++) {
-      setProcessingStep(i);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-    }
+    const stepTimer = setInterval(() => {
+      setProcessingStep((prev) =>
+        prev < processingSteps.length - 1 ? prev + 1 : prev
+      );
+    }, 1200);
 
-    setProcessing(false);
-    toast.success("Processing complete");
-    // Redirect to results screen
-    navigate("/hospital-results", { state: { patientInfo } });
+    try {
+      const primaryFile = uploadedFiles[0];
+      const data = await codePdf(primaryFile);
+      const normalized = normalizeResult(data);
+
+      toast.success("Processing complete");
+      navigate("/hospital-results", { state: { patientInfo, results: normalized } });
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message || "Processing failed. Please try again.");
+    } finally {
+      clearInterval(stepTimer);
+      setProcessing(false);
+      setProcessingStep(processingSteps.length - 1);
+    }
   };
 
   const getFileIcon = (fileName) => {
     const extension = fileName.split(".").pop()?.toLowerCase();
-    if (["jpg", "jpeg", "png", "gif"].includes(extension || "")) {
-      return <Image className="w-5 h-5 text-blue-500" />;
-    }
+    if (extension === "pdf") return <FileText className="w-5 h-5 text-primary" />;
+    if (extension === "txt") return <FileText className="w-5 h-5 text-blue-500" />;
     return <FileText className="w-5 h-5 text-primary" />;
   };
 
@@ -236,7 +294,7 @@ const HospitalDashboard = () => {
                   <Input
                     type="file"
                     multiple
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept=".pdf,.txt"
                     onChange={handleFileUpload}
                     className="hidden"
                     id="file-upload"
