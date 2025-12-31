@@ -1,3 +1,4 @@
+import pipeline.env
 from toon_format import encode
 from .judge_chain import chain_gemini_3_flash
 from dotenv import load_dotenv

@@ -1,3 +1,5 @@
+import pipeline.env  # MUST be first import
+
 import os
 from typing import List
 from pydantic import BaseModel
@@ -8,11 +10,8 @@ from pinecone import Pinecone
 from sentence_transformers import SentenceTransformer
 from toon_format import encode
 
-from dotenv import load_dotenv
-load_dotenv(dotenv_path=".env", override=True)
-
 # =====================================================
-# LAZY EMBEDDING MODEL (PRODUCTION SAFE)
+# LAZY EMBEDDING MODEL
 # =====================================================
 
 _embedding_model = None
@@ -27,12 +26,10 @@ def get_embedding_model():
 
 
 # =====================================================
-# PINECONE (ALIGNED WITH NOTEBOOK)
+# PINECONE
 # =====================================================
 
-pc = Pinecone(
-    api_key=os.environ["PINECONE_API_KEY"]
-)
+pc = Pinecone(api_key=os.environ["PINECONE_API_KEY"])
 
 icd_10_vector_db = pc.Index("icd10")
 hcpcs_vector_db = pc.Index("hcpcs")
@@ -50,7 +47,7 @@ class Structured_Medical_Entities(BaseModel):
 
 
 # =====================================================
-# MEDICAL ENTITY STRUCTURING AGENT
+# ENTITY STRUCTURING AGENT
 # =====================================================
 
 input_structuring_agent = Agent(
@@ -58,8 +55,7 @@ input_structuring_agent = Agent(
     goal="Extract ICD-10, CPT-4, and HCPCS Level II relevant terms",
     backstory=(
         "You are a medical documentation analyst trained to identify "
-        "diagnostic, procedural, and supply-related entities from clinical text "
-        "without making assumptions or adding unsupported information."
+        "diagnostic, procedural, and supply-related entities from clinical text."
     ),
     llm=LLM(model="gemini/gemini-2.5-flash"),
     verbose=True,
@@ -75,7 +71,6 @@ entity_structuring_task = Task(
     ),
     output_pydantic=Structured_Medical_Entities,
 )
-
 
 # =====================================================
 # VECTOR SEARCH TOOLS

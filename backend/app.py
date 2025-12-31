@@ -1,3 +1,4 @@
+import pipeline.env
 import os
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from pydantic import BaseModel
