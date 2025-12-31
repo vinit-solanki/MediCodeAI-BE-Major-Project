@@ -9,7 +9,7 @@ from sentence_transformers import SentenceTransformer
 from toon_format import encode
 
 # =====================================================
-# LAZY EMBEDDING MODEL (CRITICAL FIX)
+# LAZY EMBEDDING MODEL (PRODUCTION SAFE)
 # =====================================================
 
 _embedding_model = None
@@ -24,7 +24,7 @@ def get_embedding_model():
 
 
 # =====================================================
-# PINECONE (EXPLICIT, COMPATIBLE INIT)
+# PINECONE (ALIGNED WITH NOTEBOOK)
 # =====================================================
 
 pc = Pinecone(
@@ -63,21 +63,24 @@ input_structuring_agent = Agent(
     allow_delegation=False,
 )
 
-
 entity_structuring_task = Task(
     description="{medical_report_text}",
     agent=input_structuring_agent,
+    expected_output=(
+        "A structured JSON object containing lists of ICD terms, CPT terms, "
+        "and HCPCS terms extracted from the clinical note."
+    ),
     output_pydantic=Structured_Medical_Entities,
 )
 
 
 # =====================================================
-# VECTOR SEARCH TOOLS (LAZY EMBEDDING USAGE)
+# VECTOR SEARCH TOOLS
 # =====================================================
 
 @tool
 def ICD_Vector_Search_Tool(terms: List[str]) -> str:
-    """Search ICD-10 vector database."""
+    """Look up ICD-10 matches for each term and return the top results."""
     results = []
     model = get_embedding_model()
 
@@ -95,7 +98,7 @@ def ICD_Vector_Search_Tool(terms: List[str]) -> str:
 
 @tool
 def HCPCS_Vector_Search_Tool(terms: List[str]) -> str:
-    """Search HCPCS Level II vector database."""
+    """Look up HCPCS Level II matches for each term and return the top results."""
     results = []
     model = get_embedding_model()
 
@@ -113,7 +116,7 @@ def HCPCS_Vector_Search_Tool(terms: List[str]) -> str:
 
 @tool
 def CPT_Vector_Search_Tool(terms: List[str]) -> str:
-    """Search CPT-4 vector database."""
+    """Look up CPT-4 matches for each term and return the top results."""
     results = []
     model = get_embedding_model()
 
@@ -130,7 +133,7 @@ def CPT_Vector_Search_Tool(terms: List[str]) -> str:
 
 
 # =====================================================
-# ICD / HCPCS / CPT CODING AGENTS
+# ICD CODING AGENT + TASK
 # =====================================================
 
 icd_coding_agent = Agent(
@@ -138,8 +141,8 @@ icd_coding_agent = Agent(
     goal="Assign accurate ICD-10-CM diagnosis codes",
     backstory=(
         "You are a certified medical coder specializing in ICD-10-CM coding. "
-        "You strictly rely on provided clinical documentation and retrieved "
-        "reference data to select the most accurate diagnosis codes."
+        "You strictly rely on documented clinical evidence and retrieved "
+        "references to assign diagnosis codes."
     ),
     llm=LLM(model="groq/moonshotai/kimi-k2-instruct-0905"),
     tools=[ICD_Vector_Search_Tool],
@@ -147,19 +150,25 @@ icd_coding_agent = Agent(
     allow_delegation=False,
 )
 
-
 icd_task = Task(
     description="Assign ICD-10-CM diagnosis codes",
     agent=icd_coding_agent,
+    expected_output=(
+        "A list of ICD-10-CM diagnosis codes supported by the clinical documentation."
+    ),
 )
+
+
+# =====================================================
+# HCPCS CODING AGENT + TASK
+# =====================================================
 
 hcpcs_coding_agent = Agent(
     role="HCPCS Coding Agent",
     goal="Assign HCPCS Level II codes",
     backstory=(
         "You are a healthcare reimbursement specialist focused on HCPCS Level II "
-        "coding. You match supplies and non-physician services strictly to "
-        "documented evidence and retrieved references."
+        "coding and accurate supply/service classification."
     ),
     llm=LLM(model="openrouter/xiaomi/mimo-v2-flash"),
     tools=[HCPCS_Vector_Search_Tool],
@@ -167,20 +176,25 @@ hcpcs_coding_agent = Agent(
     allow_delegation=False,
 )
 
-
 hcpcs_task = Task(
     description="Assign HCPCS Level II codes",
     agent=hcpcs_coding_agent,
+    expected_output=(
+        "A list of HCPCS Level II codes supported by the clinical documentation."
+    ),
 )
 
+
+# =====================================================
+# CPT CODING AGENT + TASK
+# =====================================================
 
 cpt_coding_agent = Agent(
     role="CPT Coding Agent",
     goal="Assign CPT-4 procedure and service codes",
     backstory=(
-        "You are a procedural coding expert trained in CPT-4 guidelines. "
-        "You assign procedure codes only when the clinical documentation "
-        "clearly supports the service performed."
+        "You are a procedural coding expert trained in CPT-4 guidelines and "
+        "documentation requirements."
     ),
     llm=LLM(model="groq/openai/gpt-oss-120b"),
     tools=[CPT_Vector_Search_Tool],
@@ -188,8 +202,10 @@ cpt_coding_agent = Agent(
     allow_delegation=False,
 )
 
-
 cpt_task = Task(
     description="Assign CPT-4 procedure codes",
     agent=cpt_coding_agent,
+    expected_output=(
+        "A list of CPT-4 procedure codes supported by the clinical documentation."
+    ),
 )
