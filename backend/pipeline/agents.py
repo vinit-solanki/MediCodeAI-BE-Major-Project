@@ -8,6 +8,9 @@ from pinecone import Pinecone
 from sentence_transformers import SentenceTransformer
 from toon_format import encode
 
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=".env", override=True)
+
 # =====================================================
 # LAZY EMBEDDING MODEL (PRODUCTION SAFE)
 # =====================================================

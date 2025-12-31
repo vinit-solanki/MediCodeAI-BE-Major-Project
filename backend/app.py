@@ -10,8 +10,7 @@ from pipeline.judge import run_judge
 # =====================================================
 # ENV SETUP
 # =====================================================
-
-load_dotenv()
+load_dotenv(dotenv_path=".env", override=True)
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)

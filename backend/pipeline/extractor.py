@@ -3,6 +3,8 @@ import re
 import fitz
 import pytesseract
 from PIL import Image
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=".env", override=True)
 
 def extract_text_from_pdf(pdf_path: str) -> str:
     doc = fitz.open(pdf_path)

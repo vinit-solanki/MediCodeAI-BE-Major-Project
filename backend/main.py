@@ -1,7 +1,6 @@
 import os
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from pydantic import BaseModel
-from dotenv import load_dotenv
 
 from pipeline.extractor import extract_text_from_pdf
 from pipeline.crew_pipeline import run_medical_coding_pipeline
@@ -11,7 +10,10 @@ from pipeline.judge import run_judge
 # ENV SETUP
 # =====================================================
 
-load_dotenv()
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path=".env", override=True)
+
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)

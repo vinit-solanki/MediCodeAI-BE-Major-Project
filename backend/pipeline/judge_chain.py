@@ -3,6 +3,8 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
+from dotenv import load_dotenv
+load_dotenv(dotenv_path=".env", override=True)
 
 class Verdict(str, Enum):
     pass_ = "pass"

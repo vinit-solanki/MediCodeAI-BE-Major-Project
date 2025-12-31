@@ -9,6 +9,9 @@ from .agents import (
     cpt_coding_agent,
     cpt_task
 )
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path=".env", override=True)
 
 def run_medical_coding_pipeline(text: str):
     crew = Crew(
