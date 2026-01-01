@@ -1,14 +1,11 @@
-# pipeline/extractor.py
 import re
 import fitz
 import pytesseract
 from PIL import Image
-from dotenv import load_dotenv
-load_dotenv(dotenv_path=".env", override=True)
 
-def extract_text_from_pdf(pdf_path: str) -> str:
-    doc = fitz.open(pdf_path)
-    pages_text = []
+def extract_text_from_pdf(file_bytes: bytes) -> str:
+    doc = fitz.open(stream=file_bytes, filetype="pdf")
+    pages = []
 
     for page in doc:
         text = page.get_text("text")
@@ -19,6 +16,6 @@ def extract_text_from_pdf(pdf_path: str) -> str:
             text = pytesseract.image_to_string(img, lang="eng")
 
         text = re.sub(r"[^\x20-\x7E\n\r\t]", "", text)
-        pages_text.append(text)
+        pages.append(text)
 
-    return "\n".join(pages_text)
+    return "\n".join(pages)

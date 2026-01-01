@@ -1,0 +1,31 @@
+medical-coding-backend/
+│
+├── app/
+│   ├── main.py                    # FastAPI entry
+│   ├── config.py                  # env + global init
+│
+│   ├── api/
+│   │   └── routes.py              # HTTP endpoints
+│
+│   ├── services/
+│   │   ├── pdf_extractor.py       # PyMuPDF + OCR
+│   │   ├── embeddings.py          # SentenceTransformer
+│   │   └── vector_db.py           # Pinecone indexes
+│
+│   ├── agents/
+│   │   ├── entity_agent.py
+│   │   ├── icd_agent.py
+│   │   ├── cpt_agent.py
+│   │   ├── hcpcs_agent.py
+│   │   └── judge_agent.py
+│
+│   ├── crew/
+│   │   └── medical_coding_crew.py # Crew orchestration
+│
+│   ├── schemas/
+│   │   ├── requests.py
+│   │   └── responses.py
+│
+├── requirements.txt
+├── .env
+└── README.md

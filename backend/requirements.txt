@@ -1,54 +1,42 @@
-# ---------------------------
-# Web framework
-# ---------------------------
-fastapi==0.117.1
-uvicorn[standard]==0.30.6
-python-dotenv
-
-# ---------------------------
-# Core utilities
-# ---------------------------
+# =========================
+# Core Backend
+# =========================
+fastapi==0.110.0
+uvicorn[standard]==0.29.0
 python-dotenv==1.0.1
-typing-extensions==4.12.2
-pydantic==2.8.2
+pydantic==2.6.4
 
-# ---------------------------
-# OCR / PDF
-# ---------------------------
-pymupdf==1.24.9
-pytesseract==0.3.13
-pillow==10.4.0
+# =========================
+# Agentic Framework (STABLE)
+# =========================
+crewai==0.203.2
+litellm==1.36.2
+langchain==0.1.16
+langchain-google-genai==1.0.3
 
-# ---------------------------
-# ML / Embeddings
-# ---------------------------
-torch==2.2.2
-sentence-transformers==3.1.0
-
-# ---------------------------
-# LLM orchestration
-# ---------------------------
-crewai==0.95.0
-litellm==1.52.3
-
-# ---------------------------
-# LangChain (Gemini)
-# ---------------------------
-langchain-core==0.2.43
-langchain-google-genai==1.0.10
-
-# ---------------------------
-# Vector DB
-# ---------------------------
-pinecone==7.3.0
-
-# ---------------------------
-# Observability
-# ---------------------------
-langfuse==2.47.0
-openlit==1.30.2
-
-# ---------------------------
-# Toon format (CORRECT)
-# ---------------------------
+# =========================
+# Embeddings & Vector Store
+# =========================
+sentence-transformers==2.6.1
+pinecone==3.2.2
+numpy==1.26.4
 toon-format==0.9.0b1
+
+# =========================
+# Observability & Tracing
+# =========================
+langfuse==2.36.1
+openlit==1.25.0
+
+# =========================
+# PDF & OCR
+# =========================
+PyMuPDF==1.24.4
+pytesseract==0.3.10
+Pillow==10.3.0
+
+# =========================
+# Utilities
+# =========================
+python-multipart==0.0.9
+requests==2.31.0
