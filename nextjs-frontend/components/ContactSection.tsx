@@ -33,19 +33,19 @@ const ContactSection = () => {
   const update = (key: string, value: string) => setForm((prev) => ({ ...prev, [key]: value }));
 
   return (
-    <section id="contact" className="py-16 sm:py-20 lg:py-32 bg-secondary/30">
+    <section id="contact" className="py-12 sm:py-16 lg:py-20 bg-secondary/30">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center space-y-4 mb-12 lg:mb-16">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold font-poppins text-foreground">Get Started Today</h2>
-          <p className="text-lg sm:text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+        <div className="text-center space-y-4 mb-10 lg:mb-14">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-poppins text-foreground">Get Started Today</h2>
+          <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
             Ready to revolutionize your medical coding process? Contact our team for a personalized demonstration and implementation strategy.
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 max-w-7xl mx-auto">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-10 max-w-6xl mx-auto">
           <div className="space-y-8">
             <div className="space-y-6">
-              <h3 className="text-2xl font-semibold text-foreground font-poppins">Contact Information</h3>
+              <h3 className="text-xl font-semibold text-foreground font-poppins">Contact Information</h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -82,7 +82,7 @@ const ContactSection = () => {
             </div>
 
             <div className="space-y-4">
-              <h4 className="text-lg font-semibold text-foreground font-poppins">Implementation Support</h4>
+              <h4 className="text-base font-semibold text-foreground font-poppins">Implementation Support</h4>
               <ul className="space-y-2 text-muted-foreground">
                 <li>• 24/7 technical support during rollout</li>
                 <li>• Comprehensive staff training programs</li>
@@ -93,9 +93,9 @@ const ContactSection = () => {
           </div>
 
           <Card className="gradient-card border-0 shadow-lg">
-            <CardContent className="p-8 space-y-6">
+            <CardContent className="p-7 space-y-5">
               <div className="text-center space-y-2">
-                <h3 className="text-2xl font-semibold text-foreground font-poppins">Request a Demo</h3>
+                <h3 className="text-xl font-semibold text-foreground font-poppins">Request a Demo</h3>
                 <p className="text-muted-foreground">See MediCore-AI in action with your own data</p>
               </div>
 
@@ -113,7 +113,7 @@ const ContactSection = () => {
                   <input
                     id="hospital"
                     type="text"
-                    className="w-full px-4 py-3 border border-border rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-border rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="Enter your hospital name"
                     value={form.hospital}
                     onChange={(e) => update("hospital", e.target.value)}
@@ -128,7 +128,7 @@ const ContactSection = () => {
                   <input
                     id="name"
                     type="text"
-                    className="w-full px-4 py-3 border border-border rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-border rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="Enter your full name"
                     value={form.name}
                     onChange={(e) => update("name", e.target.value)}
@@ -143,7 +143,7 @@ const ContactSection = () => {
                   <input
                     id="email"
                     type="email"
-                    className="w-full px-4 py-3 border border-border rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-border rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="Enter your email"
                     value={form.email}
                     onChange={(e) => update("email", e.target.value)}
@@ -159,7 +159,7 @@ const ContactSection = () => {
                     <input
                       id="phone"
                       type="tel"
-                      className="w-full px-4 py-3 border border-border rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-border rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
                       placeholder="Enter your phone number"
                       value={form.phone}
                       onChange={(e) => update("phone", e.target.value)}
@@ -173,7 +173,7 @@ const ContactSection = () => {
                     <input
                       id="date"
                       type="date"
-                      className="w-full px-4 py-3 border border-border rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-4 py-2.5 border border-border rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
                       value={form.date}
                       onChange={(e) => update("date", e.target.value)}
                     />
@@ -188,12 +188,12 @@ const ContactSection = () => {
                   <textarea
                     id="message"
                     rows={3}
-                    className="w-full px-4 py-3 border border-border rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-2.5 border border-border rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-transparent"
                     placeholder="Tell us about your workflow or challenges"
                   />
                 </div>
 
-                <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 text-base font-semibold">
+                <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 text-sm font-semibold">
                   {submitted ? "Submitted" : "Schedule a Demo"}
                 </Button>
               </form>

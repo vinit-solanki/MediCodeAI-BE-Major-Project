@@ -9,8 +9,8 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navigation />
-      <main>
-        <section id="home" className="pt-24">
+      <main className="px-4 sm:px-6 space-y-12 lg:space-y-16">
+        <section id="home" className="">
           <HeroSection />
         </section>
         <section id="features">

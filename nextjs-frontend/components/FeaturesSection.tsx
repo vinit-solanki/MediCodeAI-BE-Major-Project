@@ -49,21 +49,21 @@ const features = [
 
 const FeaturesSection = () => {
   return (
-    <section id="features" className="py-16 sm:py-20 lg:py-32 bg-gradient-to-br from-gray-50 via-white to-indigo-50">
+    <section id="features" className="py-12 sm:py-16 lg:py-20 bg-gradient-to-br from-gray-50 via-white to-indigo-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center space-y-4 mb-14 lg:mb-20">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 tracking-tight">
+        <div className="text-center space-y-4 mb-12 lg:mb-16">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">
             Comprehensive AI-Powered Features
           </h2>
-          <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
             Our intelligent platform combines cutting-edge AI technology with healthcare expertise to deliver unparalleled accuracy and efficiency in medical coding and claim processing.
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
           {features.map((feature, index) => (
             <Card key={index} className="group h-full border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300">
-              <CardContent className="p-6 flex flex-col space-y-4 h-full">
+              <CardContent className="p-5 flex flex-col space-y-3 h-full">
                 {feature.image ? (
                   <div>
                     <Image
@@ -81,7 +81,7 @@ const FeaturesSection = () => {
                 )}
 
                 <div className="space-y-2 flex-1">
-                  <h3 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-900">{feature.title}</h3>
+                  <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900">{feature.title}</h3>
                   <p className="text-sm sm:text-base text-gray-600 leading-relaxed">{feature.description}</p>
                 </div>
               </CardContent>
