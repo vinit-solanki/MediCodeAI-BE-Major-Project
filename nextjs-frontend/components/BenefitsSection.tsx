@@ -41,7 +41,7 @@ const BenefitsSection = () => {
             Measurable Business Impact
           </h2>
           <p className="text-base sm:text-lg lg:text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed">
-            Transform your hospital's financial performance with quantifiable improvements in efficiency, accuracy, and patient satisfaction.
+            Transform your hospital&apos;s financial performance with quantifiable improvements in efficiency, accuracy, and patient satisfaction.
           </p>
         </div>
 

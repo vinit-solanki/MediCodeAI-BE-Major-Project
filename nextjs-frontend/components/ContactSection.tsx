@@ -101,7 +101,7 @@ const ContactSection = () => {
 
               {submitted && (
                 <div className="p-4 bg-green-50 border border-green-200 text-green-800 rounded-lg text-center">
-                  ✅ Thanks! We'll be in touch soon.
+                  ✅ Thanks! We&apos;ll be in touch soon.
                 </div>
               )}
 

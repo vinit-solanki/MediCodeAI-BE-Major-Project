@@ -3,83 +3,57 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, CheckCircle, Download, FileText, Home, Upload } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowLeft, CheckCircle, Download, Home, ShieldCheck, Save, Send, Clock, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { fallbackIntegratedResult, type IntegratedResult, type PatientInfo } from "@/lib/claim";
+import { downloadClaimPDF } from "@/lib/pdf-generator";
+import { saveClaimRecord, submitClaimToInsurance, simulateInsuranceProcessing, updateRecordStatus } from "@/lib/records-manager";
 
-type ResultPayload = {
-  extractedData: {
-    diagnosis: string;
-    procedures: string;
-    medications: string;
-    physician: string;
-  };
-  medicalCodes: {
-    icd10?: string[];
-    cpt?: string[];
-    hcpcs?: string[];
-  };
-  aiConfidence?: {
-    overall?: number | null;
-    diagnosis?: number | null;
-    procedures?: number | null;
-    medications?: number | null;
-  };
-  claimAmount?: number;
-  estimatedApproval?: string;
-  traceId?: string | null;
-};
-
-const mockResults: ResultPayload = {
-  extractedData: {
-    diagnosis: "Hypertension, Type 2 Diabetes",
-    procedures: "Routine checkup, Blood pressure monitoring, Glucose test",
-    medications: "Metformin 500mg, Lisinopril 10mg",
-    physician: "Dr. Sarah Johnson",
-  },
-  medicalCodes: {
-    icd10: ["I10", "E11.9", "Z00.00"],
-    cpt: ["99213", "93000", "82947"],
-  },
-  aiConfidence: {
-    overall: 94.2,
-    diagnosis: 96.8,
-    procedures: 92.1,
-    medications: 89.5,
-  },
-  claimAmount: 1250,
-  estimatedApproval: "High (92% confidence)",
-};
-
-const defaultPatient = {
+const defaultPatient: PatientInfo = {
   patientId: "P-12345",
   patientName: "John Doe",
-  dateOfService: "2025-09-15",
+  dateOfService: "2026-03-15",
   insuranceProvider: "Aetna",
   notes: "Follow-up required",
 };
 
 const HospitalResultsPage = () => {
   const router = useRouter();
-  const [results, setResults] = useState<ResultPayload>(mockResults);
-  const [patientInfo, setPatientInfo] = useState(defaultPatient);
 
-  useEffect(() => {
+  const [initialData] = useState(() => {
+    if (typeof window === "undefined") {
+      return { patientInfo: defaultPatient, results: fallbackIntegratedResult() };
+    }
+
     const raw = sessionStorage.getItem("hospital-results");
-    if (!raw) return;
+    if (!raw) {
+      return { patientInfo: defaultPatient, results: fallbackIntegratedResult() };
+    }
+
     try {
-      const parsed = JSON.parse(raw) as { patientInfo: typeof defaultPatient; results: ResultPayload };
-      if (parsed?.results) setResults(parsed.results);
-      if (parsed?.patientInfo) setPatientInfo(parsed.patientInfo);
+      const parsed = JSON.parse(raw) as { patientInfo: PatientInfo; results: IntegratedResult };
+      return {
+        patientInfo: parsed?.patientInfo ?? defaultPatient,
+        results: parsed?.results ?? fallbackIntegratedResult(),
+      };
     } catch (error) {
       console.warn("Failed to parse stored results", error);
+      return { patientInfo: defaultPatient, results: fallbackIntegratedResult() };
     }
-  }, []);
+  });
+
+  const patientInfo = initialData.patientInfo;
+  const results = initialData.results;
+
+  const [savedRecordId, setSavedRecordId] = useState<string | null>(null);
+  const [submissionInProgress, setSubmissionInProgress] = useState(false);
+  const [submissionStatus, setSubmissionStatus] = useState<"none" | "submitted" | "approved" | "needs-review">("none");
 
   const safeArray = useMemo(() => (arr?: string[]) => (Array.isArray(arr) ? arr : []), []);
 
@@ -102,11 +76,80 @@ const HospitalResultsPage = () => {
     return "text-red-600";
   };
 
-  const generateClaimPDF = () => {
-    toast.info("Generating claim PDF...");
-    setTimeout(() => {
-      toast.success("Claim PDF generated successfully!");
-    }, 2000);
+  const handleGeneratePDF = () => {
+    try {
+      downloadClaimPDF(patientInfo, results);
+      toast.success("Claim PDF generated and downloaded successfully!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to generate PDF. Please try again.");
+    }
+  };
+
+  const handleSaveToRecords = () => {
+    try {
+      const record = saveClaimRecord(patientInfo, results);
+      setSavedRecordId(record.recordId);
+      toast.success(`Claim saved to records. Record ID: ${record.recordId}`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save to records. Please try again.");
+    }
+  };
+
+  const handleSubmitToInsurance = async () => {
+    if (!savedRecordId) {
+      toast.error("Please save to records first before submitting to insurance");
+      return;
+    }
+
+    setSubmissionInProgress(true);
+
+    try {
+      // Simulate the submission process with animation
+      toast.loading("Processing claim for submission...");
+
+      // Get the saved record
+      const record = {
+        recordId: savedRecordId,
+        patientInfo,
+        results,
+        savedAt: new Date().toISOString(),
+        submissionStatus: "draft" as const,
+      };
+
+      // Submit and get tracking info
+      const submission = submitClaimToInsurance(record);
+
+      // Show submission success
+      toast.success(
+        `Claim submitted to ${patientInfo.insuranceProvider}. Tracking: ${submission.trackingNumber}`
+      );
+
+      setSubmissionStatus("submitted");
+
+      // Simulate insurance processing with delay
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+
+      // Get processing simulation result
+      const processingResult = simulateInsuranceProcessing(submission);
+
+      if (processingResult.approved) {
+        toast.success(processingResult.message);
+        setSubmissionStatus("approved");
+        updateRecordStatus(savedRecordId, "approved");
+      } else {
+        toast.info(processingResult.message);
+        setSubmissionStatus("needs-review");
+        updateRecordStatus(savedRecordId, "denied");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to submit claim. Please try again.");
+      setSubmissionStatus("none");
+    } finally {
+      setSubmissionInProgress(false);
+    }
   };
 
   return (
@@ -117,7 +160,7 @@ const HospitalResultsPage = () => {
             <Image src="/assets/health-insurance-logo.svg" alt="MediCore-AI" width={32} height={32} />
             <div>
               <h1 className="text-xl font-bold">Processing Results</h1>
-              <p className="text-sm text-muted-foreground">AI-extracted codes & claim summary</p>
+              <p className="text-sm text-muted-foreground">AI-extracted codes, validation, and billing preview</p>
               {results.traceId && (
                 <p className="text-xs text-muted-foreground/80">Trace ID: {results.traceId}</p>
               )}
@@ -155,7 +198,7 @@ const HospitalResultsPage = () => {
           <Card>
             <CardHeader>
               <CardTitle>AI Confidence Scores</CardTitle>
-              <CardDescription>Reliability of extracted info</CardDescription>
+              <CardDescription>Reliability of extraction and compliance review</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
@@ -166,23 +209,94 @@ const HospitalResultsPage = () => {
                   <p className="text-sm text-muted-foreground">Overall</p>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-muted/50">
-                  <p className={`text-xl font-bold ${getConfidenceColor(results.aiConfidence?.diagnosis)}`}>
-                    {formatConfidence(results.aiConfidence?.diagnosis)}
+                  <p className={`text-xl font-bold ${getConfidenceColor(results.aiConfidence?.compliance)}`}>
+                    {formatConfidence(results.aiConfidence?.compliance)}
                   </p>
-                  <p className="text-sm text-muted-foreground">Diagnosis</p>
+                  <p className="text-sm text-muted-foreground">Compliance Risk</p>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-muted/50">
-                  <p className={`text-xl font-bold ${getConfidenceColor(results.aiConfidence?.procedures)}`}>
-                    {formatConfidence(results.aiConfidence?.procedures)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Procedures</p>
+                  <p className="text-xl font-bold text-blue-600">{results.claimSummary.approvalLikelihood}</p>
+                  <p className="text-sm text-muted-foreground">Approval Likelihood</p>
                 </div>
                 <div className="text-center p-3 rounded-lg bg-muted/50">
-                  <p className={`text-xl font-bold ${getConfidenceColor(results.aiConfidence?.medications)}`}>
-                    {formatConfidence(results.aiConfidence?.medications)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">Medications</p>
+                  <p className="text-xl font-bold text-purple-600">{results.claimSummary.formType}</p>
+                  <p className="text-sm text-muted-foreground">Form Type</p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Submission Status</CardTitle>
+              <CardDescription>Track your claim processing</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="rounded-lg border p-3 bg-blue-50">
+                <div className="flex items-center gap-2">
+                  {savedRecordId ? (
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  ) : (
+                    <Clock className="w-5 h-5 text-amber-600" />
+                  )}
+                  <div>
+                    <p className="font-medium text-sm">
+                      {savedRecordId ? "Saved to Records" : "Not Yet Saved"}
+                    </p>
+                    {savedRecordId && (
+                      <p className="text-xs text-muted-foreground">ID: {savedRecordId}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border p-3 bg-green-50">
+                <div className="flex items-center gap-2">
+                  {submissionStatus !== "none" ? (
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  ) : (
+                    <Clock className="w-5 h-5 text-gray-400" />
+                  )}
+                  <div>
+                    <p className="font-medium text-sm">
+                      {submissionStatus === "none" && "Ready for Submission"}
+                      {submissionStatus === "submitted" && "Submitted to Payer"}
+                      {submissionStatus === "approved" && "✓ Approved"}
+                      {submissionStatus === "needs-review" && "Under Review"}
+                    </p>
+                    {submissionStatus !== "none" && (
+                      <p className="text-xs text-muted-foreground">
+                        {patientInfo.insuranceProvider}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Validation and Compliance</CardTitle>
+              <CardDescription>Automated checks aligned to monitor and validator stages</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {results.claimSummary.validationChecks.map((check) => (
+                <div key={check.label} className="rounded-lg border p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-medium text-sm">{check.label}</p>
+                    <Badge variant={check.status === "pass" ? "outline" : "secondary"}>
+                      {check.status === "pass" ? "Pass" : "Review"}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">{check.detail}</p>
+                </div>
+              ))}
+              <div className="rounded-lg border p-3 bg-blue-50/50">
+                <p className="text-sm text-blue-800 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4" />
+                  {results.claimSummary.payerNotes}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -215,7 +329,7 @@ const HospitalResultsPage = () => {
           <Card>
             <CardHeader>
               <CardTitle>Medical Codes</CardTitle>
-              <CardDescription>AI-assigned ICD-10 & CPT</CardDescription>
+              <CardDescription>AI-assigned ICD-10, CPT and HCPCS</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -246,56 +360,116 @@ const HospitalResultsPage = () => {
                   )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {safeArray(results.medicalCodes?.hcpcs).length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle>HCPCS Codes</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {safeArray(results.medicalCodes?.hcpcs).map((code) => (
-                  <Badge key={code} variant="outline" className="bg-amber-50 text-amber-700">
-                    {code}
-                  </Badge>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Claim Summary</CardTitle>
-              <CardDescription>Insurance claim details</CardDescription>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="text-center p-3 rounded-lg bg-blue-50 border">
-                <p className="text-lg font-bold text-blue-600">{results.estimatedApproval || "High"}</p>
-                <p className="text-sm text-blue-700">Approval Likelihood</p>
-              </div>
-              <div className="text-center p-3 rounded-lg bg-purple-50 border">
-                <p className="text-lg font-bold text-purple-600">CMS-1500</p>
-                <p className="text-sm text-purple-700">Form Type</p>
+              <div>
+                <Label className="font-medium">HCPCS</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {safeArray(results.medicalCodes?.hcpcs).length ? (
+                    safeArray(results.medicalCodes?.hcpcs).map((code) => (
+                      <Badge key={code} variant="outline" className="bg-amber-50 text-amber-700">
+                        {code}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">No HCPCS codes</span>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="lg:col-span-2">
-            <CardContent className="pt-6 flex flex-wrap gap-4 justify-center">
-              <Button onClick={generateClaimPDF} className="gradient-primary">
+            <CardHeader>
+              <CardTitle>Claim Bill Generation</CardTitle>
+              <CardDescription>Submission-ready billing preview with line items and totals</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 pr-2">Code</th>
+                      <th className="text-left py-2 pr-2">Type</th>
+                      <th className="text-left py-2 pr-2">Description</th>
+                      <th className="text-right py-2 pr-2">Units</th>
+                      <th className="text-right py-2">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {results.claimSummary.lineItems.map((item) => (
+                      <tr key={item.id} className="border-b">
+                        <td className="py-2 pr-2 font-medium">{item.code}</td>
+                        <td className="py-2 pr-2">{item.codeType}</td>
+                        <td className="py-2 pr-2 text-muted-foreground">{item.description}</td>
+                        <td className="py-2 pr-2 text-right">{item.units}</td>
+                        <td className="py-2 text-right">${(item.amount * item.units).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <p className="text-sm text-muted-foreground">Claim Status</p>
+                  <p className="font-medium">{results.claimSummary.claimStatus}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Form Type</p>
+                  <p className="font-medium">{results.claimSummary.formType}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-muted-foreground">Total Bill</p>
+                  <p className="text-2xl font-bold text-blue-700">${results.claimSummary.totalAmount.toFixed(2)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardContent className="pt-6 flex flex-wrap gap-3">
+              <Button onClick={handleGeneratePDF} className="gradient-primary">
                 <Download className="w-4 h-4 mr-2" />
                 Generate Claim PDF
               </Button>
-              <Button variant="outline">
-                <FileText className="w-4 h-4 mr-2" />
-                Save to Records
+              <Button
+                onClick={handleSaveToRecords}
+                variant={savedRecordId ? "outline" : "default"}
+                disabled={!!savedRecordId}
+              >
+                <Save className="w-4 h-4 mr-2" />
+                {savedRecordId ? "Saved ✓" : "Save to Records"}
               </Button>
-              <Button variant="outline">
-                <Upload className="w-4 h-4 mr-2" />
-                Submit to Insurance
+              <Button
+                onClick={handleSubmitToInsurance}
+                variant={submissionStatus !== "none" ? "outline" : "default"}
+                disabled={submissionInProgress || !savedRecordId}
+                className={submissionStatus === "approved" ? "bg-green-600 hover:bg-green-700" : ""}
+              >
+                <Send className="w-4 h-4 mr-2" />
+                {submissionInProgress
+                  ? "Submitting..."
+                  : submissionStatus === "approved"
+                    ? "Approved ✓"
+                    : submissionStatus === "submitted"
+                      ? "Submitted ✓"
+                      : submissionStatus === "needs-review"
+                        ? "Under Review"
+                        : "Submit to Insurance"}
               </Button>
-              <Button variant="ghost" onClick={() => router.push("/hospital-dashboard")}>Process New Document</Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  sessionStorage.setItem(
+                    "patient-view",
+                    JSON.stringify({ patientInfo, results }),
+                  );
+                  router.push("/patient-dashboard");
+                }}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                Open Patient Transparency View
+              </Button>
+              <Button variant="ghost" onClick={() => router.push("/hospital-dashboard")}>View New Patient</Button>
             </CardContent>
           </Card>
         </div>

@@ -1,0 +1,175 @@
+import { jsPDF } from "jspdf";
+import type { IntegratedResult, PatientInfo } from "./claim";
+
+export const generateClaimPDF = (
+  patientInfo: PatientInfo,
+  results: IntegratedResult,
+  formType: "CMS-1500" | "UB-04"
+) => {
+  const doc = new jsPDF("p", "mm", "a4");
+  const pageWidth = 210;
+  const pageHeight = 297;
+  const margin = 10;
+  const maxWidth = pageWidth - 2 * margin;
+
+  let yPosition = margin;
+  const lineHeight = 7;
+
+  // Helper to add text
+  const addText = (
+    text: string,
+    size: number = 10,
+    weight: "normal" | "bold" = "normal",
+    x: number = margin,
+    color: [number, number, number] = [0, 0, 0]
+  ) => {
+    doc.setFontSize(size);
+    doc.setTextColor(color[0], color[1], color[2]);
+    if (weight === "bold") {
+      doc.setFont("helvetica", "bold");
+    } else {
+      doc.setFont("helvetica", "normal");
+    }
+    doc.text(text, x, yPosition);
+    yPosition += lineHeight;
+  };
+
+  const addSection = (title: string) => {
+    yPosition += 2;
+    doc.setFillColor(200, 220, 240);
+    doc.rect(margin, yPosition - 5, maxWidth, 8, "F");
+    addText(title, 11, "bold", margin, [0, 51, 102]);
+    yPosition += 2;
+  };
+
+  // Header
+  doc.setFillColor(0, 51, 102);
+  doc.rect(0, 0, pageWidth, 20, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
+  doc.setFont("helvetica", "bold");
+  doc.text("MEDICAL CLAIM FORM", margin, 12);
+  doc.text(formType, pageWidth - margin - 30, 12);
+
+  yPosition = 25;
+  addText(`Generated: ${new Date().toLocaleDateString()}`, 9, "normal", margin, [80, 80, 80]);
+
+  // Patient Information
+  addSection("PATIENT INFORMATION");
+  addText(`Patient ID: ${patientInfo.patientId}`);
+  addText(`Name: ${patientInfo.patientName}`);
+  addText(`Date of Service: ${patientInfo.dateOfService}`);
+  addText(`Insurance Provider: ${patientInfo.insuranceProvider}`);
+
+  // Claim Summary
+  addSection("CLAIM SUMMARY");
+  addText(`Status: ${results.claimSummary.claimStatus}`);
+  addText(`Approval Likelihood: ${results.claimSummary.approvalLikelihood}`);
+  addText(`Denial Risk: ${results.claimSummary.denialRisk.toUpperCase()}`);
+  addText(`Total Bill Amount: $${results.claimSummary.totalAmount.toFixed(2)}`, 11, "bold", margin, [0, 100, 0]);
+
+  // Medical Information
+  addSection("EXTRACTED MEDICAL INFORMATION");
+  addText("Diagnosis:", 10, "bold");
+  addText(results.extractedData.diagnosis || "N/A", 9);
+
+  yPosition += 2;
+  addText("Procedures:", 10, "bold");
+  const procedures = (results.extractedData.procedures || "N/A").substring(0, 60);
+  addText(procedures, 9);
+
+  yPosition += 2;
+  addText("Medications:", 10, "bold");
+  const medications = (results.extractedData.medications || "N/A").substring(0, 60);
+  addText(medications, 9);
+
+  yPosition += 2;
+  addText("Physician: " + (results.extractedData.physician || "N/A"));
+
+  // Medical Codes
+  addSection("MEDICAL CODES");
+  const codes = [
+    ...(results.medicalCodes.icd10.map((c) => `ICD-10: ${c}`) || []),
+    ...(results.medicalCodes.cpt.map((c) => `CPT: ${c}`) || []),
+    ...(results.medicalCodes.hcpcs.map((c) => `HCPCS: ${c}`) || []),
+  ];
+
+  codes.slice(0, 10).forEach((code) => addText(code, 9));
+  if (codes.length > 10) {
+    addText(`... and ${codes.length - 10} more codes`, 9);
+  }
+
+  // Validation Checks
+  if (yPosition < pageHeight - 80) {
+    addSection("VALIDATION & COMPLIANCE");
+    results.claimSummary.validationChecks.forEach((check) => {
+      addText(`${check.label}: ${check.status.toUpperCase()}`, 9);
+    });
+  }
+
+  // Line Items Table
+  if (yPosition < pageHeight - 100) {
+    addSection("ITEMIZED CHARGES");
+
+    const tableYStart = yPosition;
+    const colX = [margin, margin + 25, margin + 50, margin + 100, margin + 150];
+
+    // Table Headers
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("Code", colX[0], tableYStart);
+    doc.text("Type", colX[1], tableYStart);
+    doc.text("Description", colX[2], tableYStart);
+    doc.text("Amount", colX[4], tableYStart);
+
+    yPosition = tableYStart + lineHeight;
+    doc.setFont("helvetica", "normal");
+
+    // Table Rows
+    results.claimSummary.lineItems.slice(0, 8).forEach((item) => {
+      if (yPosition > pageHeight - 30) {
+        doc.addPage();
+        yPosition = margin;
+      }
+
+      doc.setFontSize(8);
+      doc.text(item.code, colX[0], yPosition);
+      doc.text(item.codeType, colX[1], yPosition);
+      const desc = item.description.substring(0, 30);
+      doc.text(desc, colX[2], yPosition);
+      doc.text(`$${(item.amount * item.units).toFixed(2)}`, colX[4], yPosition);
+      yPosition += lineHeight;
+    });
+
+    yPosition += 5;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(
+      `TOTAL: $${results.claimSummary.totalAmount.toFixed(2)}`,
+      colX[4] - 20,
+      yPosition
+    );
+  }
+
+  // Footer
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  doc.text(
+    `Trace ID: ${results.traceId || "N/A"} | This claim was generated by MediCore AI`,
+    margin,
+    pageHeight - 5
+  );
+
+  return doc;
+};
+
+export const downloadClaimPDF = (
+  patientInfo: PatientInfo,
+  results: IntegratedResult
+) => {
+  const formType = results.claimSummary.formType;
+  const doc = generateClaimPDF(patientInfo, results, formType);
+  const filename = `Claim_${patientInfo.patientId}_${new Date().toISOString().slice(0, 10)}.pdf`;
+  doc.save(filename);
+};

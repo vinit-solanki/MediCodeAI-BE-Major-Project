@@ -1,108 +1,146 @@
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/$/, "");
+import { fallbackIntegratedResult } from "@/lib/claim";
+
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001").replace(/\/$/, "");
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
 
-const mockPdfResponse = {
-  medical_entities: {
-    diagnoses: ["Hypertension", "Type 2 Diabetes"],
-    procedures: ["Routine checkup", "Blood pressure monitoring", "Glucose test"],
-    medications: ["Metformin 500mg", "Lisinopril 10mg"],
-    provider: "Dr. Sarah Johnson",
-  },
-  icd_codes: ["I10", "E11.9", "Z00.00"],
-  cpt_codes: ["99213", "93000", "82947"],
-  hcpcs_codes: ["A0425"],
-  evaluation: { overall_score: 0.94, compliance_risk: 0.08 },
-  trace_id: "mock-trace-id-1234",
+type HealthResponse = {
+  status: string;
+  version: string;
+  environment: string;
 };
 
-const mockTextResponse = {
-  ...mockPdfResponse,
+type ProcessTextRequest = {
+  medical_report_text: string;
+  include_evaluation?: boolean;
 };
 
-async function maybeDelay(result: any) {
-  // Light delay to mimic network for better UX feedback.
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  return result;
-}
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function handleResponse(response: Response) {
+const readNestedCodes = (value: unknown): string[] => {
+  if (!value) return [];
+
+  if (typeof value === "string") {
+    return [value.trim()].filter(Boolean);
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap(readNestedCodes);
+  }
+
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const directKeys = ["code", "icd_code", "ICD_code", "cpt_code", "hcpcs_code"];
+
+    const direct = directKeys
+      .map((key) => obj[key])
+      .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
+
+    const deep = Object.values(obj).flatMap(readNestedCodes);
+    return [...direct, ...deep];
+  }
+
+  return [];
+};
+
+const toCommaText = (value: unknown, fallback: string): string => {
+  if (!value) return fallback;
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) {
+    const joined = value.filter((entry) => typeof entry === "string").join(", ");
+    return joined || fallback;
+  }
+  if (typeof value === "object") {
+    const parts = Object.values(value as Record<string, unknown>)
+      .flatMap((entry) => (typeof entry === "string" ? [entry] : []))
+      .join(", ");
+    return parts || fallback;
+  }
+  return fallback;
+};
+
+const normalizeErrorMessage = (err: unknown): string => {
+  if (err instanceof Error && err.message) return err.message;
+  return "Network error while calling the API.";
+};
+
+async function handleResponse<T>(response: Response): Promise<T> {
   const contentType = response.headers.get("content-type") || "";
   const isJson = contentType.includes("application/json");
   const body = isJson ? await response.json().catch(() => null) : null;
 
   if (!response.ok) {
-    const message = (body as Record<string, unknown>)?.message as string;
-    throw new Error(message || `Request failed with status ${response.status}`);
+    const detail = (body as Record<string, unknown> | null)?.detail;
+    const message = typeof detail === "string" ? detail : `Request failed with status ${response.status}`;
+    throw new Error(message);
   }
 
-  if (body && typeof body === "object" && "status" in body && (body as Record<string, unknown>).status !== "success") {
-    const message = (body as Record<string, unknown>)?.message as string;
-    throw new Error(message || "Request failed");
-  }
-
-  // prefer data envelope if present
-  if (body && typeof body === "object" && "data" in body) {
-    return (body as Record<string, unknown>).data;
-  }
-
-  return body ?? null;
+  return body as T;
 }
 
-export async function codePdf(file: File) {
-  if (!file) {
-    throw new Error("A file is required for PDF processing");
+export async function healthCheck(): Promise<HealthResponse> {
+  if (USE_MOCK) {
+    await wait(280);
+    return { status: "healthy", version: "0.1.0", environment: "demo" };
+  }
+
+  const res = await fetch(`${API_BASE}/api/v1/health`, { method: "GET" });
+  return handleResponse<HealthResponse>(res);
+}
+
+export async function processMedicalText(request: ProcessTextRequest) {
+  if (!request.medical_report_text || request.medical_report_text.trim().length < 10) {
+    throw new Error("Medical report text must be at least 10 characters long.");
   }
 
   if (USE_MOCK) {
-    return maybeDelay(mockPdfResponse);
+    await wait(600);
+    return fallbackIntegratedResult();
   }
 
-  const formData = new FormData();
-  formData.append("file", file);
-
-  let res: Response;
+  let response: Response;
   try {
-    res = await fetch(`${API_BASE}/api/code/pdf`, {
-      method: "POST",
-      body: formData,
-    });
-  } catch (err: any) {
-    // Network/connection errors surface as TypeError in fetch.
-    throw new Error(
-      err?.message?.includes("fetch") || err?.name === "TypeError"
-        ? "Cannot reach the MediCore backend. Please start the backend or check NEXT_PUBLIC_API_URL."
-        : err?.message || "Network error while calling the API."
-    );
-  }
-
-  return handleResponse(res);
-}
-
-export async function codeText(text: string) {
-  if (!text || !text.trim()) {
-    throw new Error("Medical text is required");
-  }
-
-  if (USE_MOCK) {
-    return maybeDelay(mockTextResponse);
-  }
-
-  let res: Response;
-  try {
-    res = await fetch(`${API_BASE}/api/code/text`, {
+    response = await fetch(`${API_BASE}/api/v1/coding/process/text`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({
+        medical_report_text: request.medical_report_text,
+        include_evaluation: request.include_evaluation ?? true,
+      }),
     });
-  } catch (err: any) {
+  } catch (error: unknown) {
     throw new Error(
-      err?.message?.includes("fetch") || err?.name === "TypeError"
-        ? "Cannot reach the MediCore backend. Please start the backend or check NEXT_PUBLIC_API_URL."
-        : err?.message || "Network error while calling the API."
+      normalizeErrorMessage(error).includes("fetch")
+        ? "Cannot reach backend API. Start backend or set NEXT_PUBLIC_API_URL correctly."
+        : normalizeErrorMessage(error),
     );
   }
 
-  return handleResponse(res);
+  const payload = await handleResponse<Record<string, unknown>>(response);
+
+  const extracted = (payload.extracted_entities as Record<string, unknown> | undefined) || {};
+  const medicalCodes = {
+    icd10: Array.from(new Set(readNestedCodes(payload.icd_codes))),
+    cpt: Array.from(new Set(readNestedCodes(payload.cpt_codes))),
+    hcpcs: Array.from(new Set(readNestedCodes(payload.hcpcs_codes))),
+  };
+
+  const overall = (payload.evaluation as Record<string, unknown> | undefined)?.overall_score;
+  const compliance = (payload.evaluation as Record<string, unknown> | undefined)?.compliance_risk;
+
+  return {
+    extractedData: {
+      diagnosis: toCommaText(extracted.diagnoses ?? extracted.conditions, "Not provided"),
+      procedures: toCommaText(extracted.procedures ?? extracted.treatments, "Not provided"),
+      medications: toCommaText(extracted.medications, "Not provided"),
+      physician: toCommaText(extracted.provider ?? extracted.physician, "Unknown"),
+    },
+    medicalCodes,
+    aiConfidence: {
+      overall: typeof overall === "number" ? overall : null,
+      compliance: typeof compliance === "number" ? compliance : null,
+    },
+    traceId: typeof payload.trace_id === "string" ? payload.trace_id : null,
+  };
 }
 
-export { API_BASE };
+export { API_BASE, USE_MOCK };
