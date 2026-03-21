@@ -1,6 +1,6 @@
 import { fallbackIntegratedResult } from "@/lib/claim";
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001").replace(/\/$/, "");
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
 
 type HealthResponse = {
