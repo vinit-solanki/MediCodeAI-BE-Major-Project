@@ -159,7 +159,7 @@ const HospitalDashboard = () => {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <img src={logoSvg} alt="MediCore-AI" className="w-8 h-8" />
+            <img src={logoSvg} alt="MediCode-AI" className="w-8 h-8" />
             <div>
               <h1 className="text-xl font-bold">Hospital Dashboard</h1>
               <p className="text-sm text-muted-foreground">

@@ -51,8 +51,8 @@ const SignUpPage = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-3 mb-4">
-            <Image src="/assets/health-insurance-logo.svg" alt="MediCore-AI Logo" width={48} height={48} />
-            <h1 className="text-3xl font-bold text-foreground">MediCore-AI</h1>
+            <Image src="/assets/health-insurance-logo.svg" alt="MediCode-AI Logo" width={48} height={48} />
+            <h1 className="text-3xl font-bold text-foreground">MediCode-AI</h1>
           </div>
           <p className="text-muted-foreground">Create your account</p>
         </div>

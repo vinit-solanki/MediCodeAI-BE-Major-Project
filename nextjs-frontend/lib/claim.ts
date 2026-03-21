@@ -18,6 +18,43 @@ export type ConfidenceScores = {
   compliance: number | null;
 };
 
+export type BackendCodeEntry = {
+  code: string;
+  description: string;
+  confidence: number;
+  linked_icd_codes?: string[];
+};
+
+export type BackendSectionJudgement = {
+  section: string;
+  verdict: "pass" | "fail";
+  incorrect_codes: string[] | null;
+  notes: string;
+};
+
+export type BackendEvaluation = {
+  overall_verdict: "pass" | "fail";
+  overall_score: number;
+  section_judgements: BackendSectionJudgement[];
+  compliance_risk: string;
+  summary: string;
+  incorrect_codes_overall: string[];
+  notes: string;
+};
+
+export type BackendPipelineResponse = {
+  extracted_entities: {
+    icd_terms: string[];
+    cpt_terms: string[];
+    hcpcs_terms: string[];
+  };
+  icd_codes: { icd_codes: BackendCodeEntry[] };
+  cpt_codes: { cpt_codes: BackendCodeEntry[] };
+  hcpcs_codes: { hcpcs_codes: BackendCodeEntry[] };
+  evaluation?: BackendEvaluation;
+  trace_id?: string;
+};
+
 export type ClaimLineItem = {
   id: string;
   code: string;
@@ -50,6 +87,8 @@ export type IntegratedResult = {
   medicalCodes: MedicalCodes;
   aiConfidence: ConfidenceScores;
   traceId: string | null;
+  evaluation?: BackendEvaluation | null;
+  backendResponse?: BackendPipelineResponse;
   claimSummary: ClaimSummary;
 };
 
@@ -99,13 +138,17 @@ const makeLineItem = (
   code: string,
   codeType: "ICD-10" | "CPT" | "HCPCS",
   index: number,
+  descriptionByCode?: Record<string, string>,
 ): ClaimLineItem => {
   const amount = chargeCatalog[code] ?? 95 + index * 15;
   return {
     id: `${codeType}-${code}-${index}`,
     code,
     codeType,
-    description: descriptionCatalog[code] ?? "Medical service associated with extracted code",
+    description:
+      descriptionByCode?.[code] ??
+      descriptionCatalog[code] ??
+      "Medical service associated with extracted code",
     units: 1,
     amount,
   };
@@ -114,11 +157,12 @@ const makeLineItem = (
 export const buildClaimSummary = (
   codes: MedicalCodes,
   confidence: ConfidenceScores,
+  descriptionByCode?: Record<string, string>,
 ): ClaimSummary => {
   const lineItems: ClaimLineItem[] = [
-    ...codes.icd10.map((code, index) => makeLineItem(code, "ICD-10", index)),
-    ...codes.cpt.map((code, index) => makeLineItem(code, "CPT", index)),
-    ...codes.hcpcs.map((code, index) => makeLineItem(code, "HCPCS", index)),
+    ...codes.icd10.map((code, index) => makeLineItem(code, "ICD-10", index, descriptionByCode)),
+    ...codes.cpt.map((code, index) => makeLineItem(code, "CPT", index, descriptionByCode)),
+    ...codes.hcpcs.map((code, index) => makeLineItem(code, "HCPCS", index, descriptionByCode)),
   ];
 
   const totalAmount = lineItems.reduce((sum, item) => sum + item.amount * item.units, 0);
@@ -187,6 +231,15 @@ export const fallbackIntegratedResult = (): IntegratedResult => {
     medicalCodes,
     aiConfidence,
     traceId: "demo-trace-20431",
+    evaluation: {
+      overall_verdict: "pass",
+      overall_score: 0.94,
+      section_judgements: [],
+      compliance_risk: "low",
+      summary: "Demo evaluation",
+      incorrect_codes_overall: [],
+      notes: "Demo notes",
+    },
     claimSummary: buildClaimSummary(medicalCodes, aiConfidence),
   };
 };

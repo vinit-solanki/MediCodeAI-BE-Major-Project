@@ -8,8 +8,8 @@ const Footer = () => {
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-7">
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
-              <Image src="/assets/medical-shield.jpg" alt="MediCore-AI Logo" className="rounded-full" width={40} height={40} />
-              <span className="font-poppins font-bold text-2xl">MediCore-AI</span>
+              <Image src="/assets/medical-shield.jpg" alt="MediCode-AI Logo" className="rounded-full" width={40} height={40} />
+              <span className="font-poppins font-bold text-2xl">MediCode-AI</span>
             </div>
             <p className="text-primary-foreground/80 leading-relaxed">
               Revolutionizing medical coding with AI-powered automation for hospitals and healthcare providers.
@@ -48,7 +48,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-primary-foreground/20 mt-8 pt-7 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-primary-foreground/60">© 2024 MediCore-AI. All rights reserved.</p>
+          <p className="text-primary-foreground/60">© 2024 MediCode-AI. All rights reserved.</p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link href="#" className="text-primary-foreground/60 hover:text-white transition-colors">Privacy Policy</Link>
             <Link href="#" className="text-primary-foreground/60 hover:text-white transition-colors">Terms of Service</Link>

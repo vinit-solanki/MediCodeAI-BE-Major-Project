@@ -1,4 +1,4 @@
-import { fallbackIntegratedResult } from "@/lib/claim";
+import { buildClaimSummary, fallbackIntegratedResult } from "@/lib/claim";
 
 const API_BASE = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/$/, "");
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
@@ -37,6 +37,38 @@ const readNestedCodes = (value: unknown): string[] => {
 
     const deep = Object.values(obj).flatMap(readNestedCodes);
     return [...direct, ...deep];
+  }
+
+  return [];
+};
+
+type CodeEntry = {
+  code: string;
+  description?: string;
+};
+
+const readCodeEntries = (value: unknown): CodeEntry[] => {
+  if (!value) return [];
+
+  if (Array.isArray(value)) {
+    return value.flatMap(readCodeEntries);
+  }
+
+  if (typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const codeKeys = ["code", "icd_code", "ICD_code", "cpt_code", "hcpcs_code"];
+    const descriptionKeys = ["description", "desc", "label", "title"];
+
+    const code = codeKeys
+      .map((key) => obj[key])
+      .find((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
+
+    const description = descriptionKeys
+      .map((key) => obj[key])
+      .find((entry): entry is string => typeof entry === "string" && entry.trim().length > 0);
+
+    const nested = Object.values(obj).flatMap(readCodeEntries);
+    return code ? [{ code, description }, ...nested] : nested;
   }
 
   return [];
@@ -118,14 +150,31 @@ export async function processMedicalText(request: ProcessTextRequest) {
   const payload = await handleResponse<Record<string, unknown>>(response);
 
   const extracted = (payload.extracted_entities as Record<string, unknown> | undefined) || {};
+  const icdEntries = readCodeEntries(payload.icd_codes);
+  const cptEntries = readCodeEntries(payload.cpt_codes);
+  const hcpcsEntries = readCodeEntries(payload.hcpcs_codes);
+
+  const descriptionByCode: Record<string, string> = {};
+  [...icdEntries, ...cptEntries, ...hcpcsEntries].forEach((entry) => {
+    if (entry.code && entry.description) {
+      descriptionByCode[entry.code] = entry.description;
+    }
+  });
+
   const medicalCodes = {
-    icd10: Array.from(new Set(readNestedCodes(payload.icd_codes))),
-    cpt: Array.from(new Set(readNestedCodes(payload.cpt_codes))),
-    hcpcs: Array.from(new Set(readNestedCodes(payload.hcpcs_codes))),
+    icd10: Array.from(new Set(icdEntries.map((entry) => entry.code).concat(readNestedCodes(payload.icd_codes)))),
+    cpt: Array.from(new Set(cptEntries.map((entry) => entry.code).concat(readNestedCodes(payload.cpt_codes)))),
+    hcpcs: Array.from(new Set(hcpcsEntries.map((entry) => entry.code).concat(readNestedCodes(payload.hcpcs_codes)))),
   };
 
-  const overall = (payload.evaluation as Record<string, unknown> | undefined)?.overall_score;
-  const compliance = (payload.evaluation as Record<string, unknown> | undefined)?.compliance_risk;
+  const evaluation = payload.evaluation as Record<string, unknown> | undefined;
+  const overall = evaluation?.overall_score;
+  const compliance = evaluation?.compliance_risk;
+
+  const aiConfidence = {
+    overall: typeof overall === "number" ? overall : null,
+    compliance: typeof compliance === "number" ? compliance : null,
+  };
 
   return {
     extractedData: {
@@ -135,11 +184,11 @@ export async function processMedicalText(request: ProcessTextRequest) {
       physician: toCommaText(extracted.provider ?? extracted.physician, "Unknown"),
     },
     medicalCodes,
-    aiConfidence: {
-      overall: typeof overall === "number" ? overall : null,
-      compliance: typeof compliance === "number" ? compliance : null,
-    },
+    aiConfidence,
     traceId: typeof payload.trace_id === "string" ? payload.trace_id : null,
+    evaluation: (payload.evaluation as Record<string, unknown> | undefined) ?? null,
+    backendResponse: payload,
+    claimSummary: buildClaimSummary(medicalCodes, aiConfidence, descriptionByCode),
   };
 }
 

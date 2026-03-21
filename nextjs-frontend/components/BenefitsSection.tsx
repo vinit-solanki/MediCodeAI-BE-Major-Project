@@ -67,7 +67,7 @@ const BenefitsSection = () => {
           <div className="max-w-4xl mx-auto bg-gradient-to-tr from-indigo-50 to-blue-100 rounded-3xl p-8 shadow-lg">
             <h3 className="text-xl font-bold text-gray-900 mb-3">Ready to Transform Your Medical Coding?</h3>
             <p className="text-gray-600 mb-6 leading-relaxed">
-              Join leading hospitals that have already reduced coding errors, accelerated revenue cycles, and improved patient satisfaction with MediCore-AI.
+              Join leading hospitals that have already reduced coding errors, accelerated revenue cycles, and improved patient satisfaction with MediCode-AI.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button className="px-7 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-300">

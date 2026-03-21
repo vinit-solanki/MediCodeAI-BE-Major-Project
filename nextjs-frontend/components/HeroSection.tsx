@@ -49,7 +49,7 @@ const HeroSection = () => {
           <div className="bg-gradient-to-tr from-indigo-50 to-blue-100 rounded-3xl p-5 lg:p-8 shadow-xl">
             <Image
               src="/assets/medical-team.jpg"
-              alt="Professional medical team using MediCore-AI"
+              alt="Professional medical team using MediCode-AI"
               className="w-full max-w-[540px] mx-auto h-auto object-cover rounded-2xl"
               width={540}
               height={560}

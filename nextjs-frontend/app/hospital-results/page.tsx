@@ -69,6 +69,9 @@ const HospitalResultsPage = () => {
     return `${percent.toFixed(1)}%`;
   };
 
+  const evaluationScore = results.evaluation?.overall_score;
+  const evaluationRisk = results.evaluation?.compliance_risk ?? "not-available";
+
   const getConfidenceColor = (confidence: number | null | undefined) => {
     const percent = normalizeConfidenceNumber(confidence);
     if (percent >= 90) return "text-green-600";
@@ -157,7 +160,7 @@ const HospitalResultsPage = () => {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Image src="/assets/health-insurance-logo.svg" alt="MediCore-AI" width={32} height={32} />
+            <Image src="/assets/health-insurance-logo.svg" alt="MediCode-AI" width={32} height={32} />
             <div>
               <h1 className="text-xl font-bold">Processing Results</h1>
               <p className="text-sm text-muted-foreground">AI-extracted codes, validation, and billing preview</p>
@@ -300,6 +303,54 @@ const HospitalResultsPage = () => {
               </div>
             </CardContent>
           </Card>
+
+          {results.evaluation && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Backend Evaluation Verdict</CardTitle>
+                <CardDescription>Judge-agent scoring and section-level coding checks</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-lg border p-3 bg-muted/40">
+                    <p className="text-xs text-muted-foreground">Overall Verdict</p>
+                    <p className="font-semibold uppercase">{results.evaluation.overall_verdict}</p>
+                  </div>
+                  <div className="rounded-lg border p-3 bg-muted/40">
+                    <p className="text-xs text-muted-foreground">Overall Score</p>
+                    <p className="font-semibold">{formatConfidence(evaluationScore)}</p>
+                  </div>
+                  <div className="rounded-lg border p-3 bg-muted/40 col-span-2">
+                    <p className="text-xs text-muted-foreground">Compliance Risk</p>
+                    <p className="font-semibold capitalize">{evaluationRisk}</p>
+                  </div>
+                </div>
+
+                {results.evaluation.summary && (
+                  <div className="rounded-lg border p-3">
+                    <p className="text-xs text-muted-foreground mb-1">Summary</p>
+                    <p className="text-sm">{results.evaluation.summary}</p>
+                  </div>
+                )}
+
+                {results.evaluation.section_judgements.length > 0 && (
+                  <div className="space-y-2">
+                    {results.evaluation.section_judgements.map((item) => (
+                      <div key={item.section} className="rounded-lg border p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-medium">{item.section}</p>
+                          <Badge variant={item.verdict === "pass" ? "outline" : "secondary"}>
+                            {item.verdict.toUpperCase()}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{item.notes}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

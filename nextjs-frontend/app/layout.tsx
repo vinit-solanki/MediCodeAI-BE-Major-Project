@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MediCore-AI",
+  title: "MediCode-AI",
   description: "AI-powered medical coding and claims automation",
 };
 

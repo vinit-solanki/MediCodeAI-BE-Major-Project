@@ -31,8 +31,8 @@ export function getPatientClaims(patientId: string): PatientClaim[] {
   if (typeof window === "undefined") return [];
 
   try {
-    const recordsJson = localStorage.getItem("medicore_saved_records");
-    const submissionsJson = localStorage.getItem("medicore_submissions");
+    const recordsJson = localStorage.getItem("MediCode_saved_records");
+    const submissionsJson = localStorage.getItem("MediCode_submissions");
 
     const records: SavedRecord[] = recordsJson ? JSON.parse(recordsJson) : [];
     const submissions: ClaimSubmission[] = submissionsJson ? JSON.parse(submissionsJson) : [];

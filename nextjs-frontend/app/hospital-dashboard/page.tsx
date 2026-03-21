@@ -344,6 +344,17 @@ export default function HospitalDashboard() {
       hcpcs: data.hcpcs_codes.hcpcs_codes.map((item) => item.code),
     };
 
+    const descriptionByCode: Record<string, string> = {};
+    data.icd_codes.icd_codes.forEach((item) => {
+      descriptionByCode[item.code] = item.description;
+    });
+    data.cpt_codes.cpt_codes.forEach((item) => {
+      descriptionByCode[item.code] = item.description;
+    });
+    data.hcpcs_codes.hcpcs_codes.forEach((item) => {
+      descriptionByCode[item.code] = item.description;
+    });
+
     const aiConfidence = {
       overall: typeof data.evaluation?.overall_score === "number" ? data.evaluation.overall_score : null,
       compliance: toComplianceScore(data.evaluation?.compliance_risk),
@@ -359,7 +370,9 @@ export default function HospitalDashboard() {
       medicalCodes,
       aiConfidence,
       traceId: data.trace_id ?? null,
-      claimSummary: buildClaimSummary(medicalCodes, aiConfidence),
+      evaluation: data.evaluation ?? null,
+      backendResponse: data,
+      claimSummary: buildClaimSummary(medicalCodes, aiConfidence, descriptionByCode),
     };
   };
 
@@ -509,7 +522,7 @@ export default function HospitalDashboard() {
           </div>
           <div>
             <p style={{ margin: 0, fontWeight: 500, fontSize: 15 }}>
-              MediCore AI
+              MediCode AI
             </p>
             <p
               style={{

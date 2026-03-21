@@ -53,7 +53,7 @@ const ContactSection = () => {
                   </div>
                   <div>
                     <div className="font-medium text-foreground">Email</div>
-                    <div className="text-muted-foreground">contact@medicore-ai.com</div>
+                    <div className="text-muted-foreground">contact@MediCode-ai.com</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -96,7 +96,7 @@ const ContactSection = () => {
             <CardContent className="p-7 space-y-5">
               <div className="text-center space-y-2">
                 <h3 className="text-xl font-semibold text-foreground font-poppins">Request a Demo</h3>
-                <p className="text-muted-foreground">See MediCore-AI in action with your own data</p>
+                <p className="text-muted-foreground">See MediCode-AI in action with your own data</p>
               </div>
 
               {submitted && (

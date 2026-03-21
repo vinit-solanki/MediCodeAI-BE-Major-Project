@@ -35,7 +35,7 @@ const Login = () => {
     }
 
     // Mock login - redirect based on user type
-    toast.success(`Welcome to MediCore-AI ${userType} Dashboard`);
+    toast.success(`Welcome to MediCode-AI ${userType} Dashboard`);
 
     if (userType === "patient") {
       navigate("/patient-dashboard");
@@ -49,8 +49,8 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-3 mb-4">
-            <img src={logoSvg} alt="MediCore-AI Logo" className="w-12 h-12" />
-            <h1 className="text-3xl font-bold text-foreground">MediCore-AI</h1>
+            <img src={logoSvg} alt="MediCode-AI Logo" className="w-12 h-12" />
+            <h1 className="text-3xl font-bold text-foreground">MediCode-AI</h1>
           </div>
           <p className="text-muted-foreground">Sign in to your account</p>
         </div>

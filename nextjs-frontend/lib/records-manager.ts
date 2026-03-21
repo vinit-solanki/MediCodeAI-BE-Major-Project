@@ -10,8 +10,8 @@ export type SavedRecord = {
   payerNotes?: string;
 };
 
-const RECORDS_STORAGE_KEY = "medicore_saved_records";
-const SUBMISSIONS_STORAGE_KEY = "medicore_submissions";
+const RECORDS_STORAGE_KEY = "MediCode_saved_records";
+const SUBMISSIONS_STORAGE_KEY = "MediCode_submissions";
 
 export const getRecordsDB = (): SavedRecord[] => {
   if (typeof window === "undefined") return [];

@@ -123,6 +123,7 @@ const PatientDashboardPage = () => {
 
   const timeline = useMemo(() => getClaimStatusTimeline(currentClaim), [currentClaim]);
   const daysUntilProcessing = useMemo(() => getDaysUntilProcessing(currentClaim), [currentClaim]);
+  const evaluation = currentResults.evaluation;
 
   const downloadSummary = () => {
     toast.info("Generating patient summary PDF...");
@@ -139,7 +140,7 @@ const PatientDashboardPage = () => {
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Image src="/assets/health-insurance-logo.svg" alt="MediCore-AI" width={32} height={32} />
+            <Image src="/assets/health-insurance-logo.svg" alt="MediCode-AI" width={32} height={32} />
             <div>
               <h1 className="text-xl font-bold">Patient Dashboard</h1>
               <p className="text-sm text-muted-foreground">Diagnosis, coding, cost transparency, and claim progress</p>
@@ -391,6 +392,32 @@ const PatientDashboardPage = () => {
             </div>
           </CardContent>
         </Card>
+
+        {evaluation && (
+          <Card>
+            <CardHeader>
+              <CardTitle>AI Coding Quality</CardTitle>
+              <CardDescription>Automated coding review from the backend evaluator</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border p-3 bg-muted/40">
+                  <p className="text-xs text-muted-foreground">Verdict</p>
+                  <p className="font-semibold uppercase">{evaluation.overall_verdict}</p>
+                </div>
+                <div className="rounded-lg border p-3 bg-muted/40">
+                  <p className="text-xs text-muted-foreground">Score</p>
+                  <p className="font-semibold">{(evaluation.overall_score * 100).toFixed(1)}%</p>
+                </div>
+              </div>
+              <div className="rounded-lg border p-3 bg-muted/40">
+                <p className="text-xs text-muted-foreground">Compliance Risk</p>
+                <p className="font-medium capitalize">{evaluation.compliance_risk}</p>
+              </div>
+              {evaluation.summary && <p className="text-sm text-muted-foreground">{evaluation.summary}</p>}
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader>

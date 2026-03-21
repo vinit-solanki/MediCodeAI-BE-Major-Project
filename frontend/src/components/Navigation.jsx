@@ -12,11 +12,11 @@ const Navigation = () => {
         <div className="flex items-center gap-3">
           <img 
             src={logoSvg} 
-            alt="MediCore-AI Logo" 
+            alt="MediCode-AI Logo" 
             className="rounded-full w-9 h-9 lg:w-10 lg:h-10"
           />
           <span className="font-bold text-lg lg:text-xl text-blue-800 tracking-tight">
-            MediCore-AI
+            MediCode-AI
           </span>
         </div>
 

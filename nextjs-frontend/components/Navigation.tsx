@@ -17,13 +17,13 @@ const Navigation = () => {
         <div className="flex items-center gap-3">
           <Image
             src="/assets/medical-shield.jpg"
-            alt="MediCore-AI Logo"
+            alt="MediCode-AI Logo"
             className="rounded-full"
             width={40}
             height={40}
             priority
           />
-          <span className="font-bold text-base lg:text-lg text-blue-800 tracking-tight">MediCore-AI</span>
+          <span className="font-bold text-base lg:text-lg text-blue-800 tracking-tight">MediCode-AI</span>
         </div>
 
         <div className="hidden md:flex items-center space-x-6 lg:space-x-10">

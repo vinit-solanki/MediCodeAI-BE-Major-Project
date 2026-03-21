@@ -53,7 +53,7 @@ const ContactSection = () => {
                   <div>
                     <div className="font-medium text-foreground">Email</div>
                     <div className="text-muted-foreground">
-                      contact@medicore-ai.com
+                      contact@MediCode-ai.com
                     </div>
                   </div>
                 </div>
@@ -107,7 +107,7 @@ const ContactSection = () => {
                   Request a Demo
                 </h3>
                 <p className="text-muted-foreground">
-                  See MediCore-AI in action with your own data
+                  See MediCode-AI in action with your own data
                 </p>
               </div>
 
